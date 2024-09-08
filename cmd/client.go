@@ -68,7 +68,7 @@ func (c *Client) Connect() error {
 
 	c.conn, err = net.Dial("tcp", c.address)
 	if err != nil {
-		return fmt.Errorf("connecting to %s", c.address, err)
+		return err
 	}
 
 	// start the write and read loops in separate goroutines to handle the requests and responses
@@ -128,7 +128,7 @@ func (c *Client) writeLoop() {
 
 	for request := range c.requestsChan {
 		// pack the ISO 8583 message into bytes
-		packed, err := -request.message.Pack()
+		packed, err := request.message.Pack()
 		if err != nil {
 			request.responseChan <- Response{nil, fmt.Errorf("error packing the message: %v", err)}
 		}
@@ -149,7 +149,7 @@ func (c *Client) writeLoop() {
 		if err != nil {
 			slog.Error("failed to send the message", "error", err)
 
-			request.responseChan <- Response{nil, fmt.Errorf("error sending the message: ")}
+			request.responseChan <- Response{nil, fmt.Errorf("error sending the message: %v", err)}
 		}
 	}
 }
@@ -224,7 +224,7 @@ func messageID(message *iso8583.Message) string {
 	data := messageIDData{}
 	err := message.Unmarshal(&data)
 	if err != nil {
-		slog.Error(err)
+		slog.Error(err.Error())
 		return ""
 	}
 
